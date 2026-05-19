@@ -28,7 +28,7 @@ const colorMap = {
 export default function Guide() {
   const { settings } = useSettings();
 
-  const judul = settings?.panduanJudul || "Panduan Pendaftaran PPDB";
+  const judul = settings?.panduanJudul || "Panduan Pendaftaran SPMB";
   const deskripsi = settings?.panduanDeskripsi || "Persiapkan dokumen berikut sebelum mulai mengisi formulir pendaftaran.";
   const peringatan = settings?.panduanPeringatan || "Pastikan semua dokumen di-scan atau difoto dengan jelas dan dapat terbaca. Format file yang disarankan adalah JPG, PNG, atau PDF dengan ukuran maksimal 2MB per file.";
   const dokumen = settings?.panduanDokumen || [

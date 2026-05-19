@@ -74,7 +74,7 @@ export default function RegistrationForm() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
-    doc.text("BUKTI PENDAFTARAN PPDB", 105, 20, { align: "center" });
+    doc.text("BUKTI PENDAFTARAN SPMB", 105, 20, { align: "center" });
     doc.setFontSize(14);
     doc.setFont("helvetica", "normal");
     doc.text(settings?.namaSekolah || "SDN Harapan Bangsa", 105, 30, { align: "center" });
@@ -312,7 +312,7 @@ export default function RegistrationForm() {
           className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100"
         >
           <div className="bg-gradient-to-r from-blue-600 to-blue-800 px-8 py-10 text-white text-center">
-            <h2 className="text-3xl font-bold mb-2">Formulir Pendaftaran PPDB</h2>
+            <h2 className="text-3xl font-bold mb-2">Formulir Pendaftaran SPMB</h2>
             <p className="text-blue-100">Lengkapi data diri calon peserta didik dengan benar dan valid.</p>
           </div>
 

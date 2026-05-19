@@ -48,7 +48,7 @@ export default function Home() {
                 {!isClosed && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>}
                 <span className={`relative inline-flex rounded-full h-3 w-3 ${isClosed ? 'bg-red-500' : 'bg-blue-500'}`}></span>
               </span>
-              {isClosed ? `Pendaftaran PPDB ${new Date().getFullYear()} Telah Ditutup` : `Pendaftaran PPDB ${new Date().getFullYear()} Telah Dibuka`}
+              {isClosed ? `Pendaftaran SPMB ${new Date().getFullYear()} Telah Ditutup` : `Pendaftaran SPMB ${new Date().getFullYear()} Telah Dibuka`}
             </motion.div>
             
             <motion.h1
@@ -97,7 +97,7 @@ export default function Home() {
                 href="#alur"
                 className="inline-flex justify-center items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-8 py-4 rounded-full text-lg font-semibold transition-all shadow-sm hover:shadow-md"
               >
-                Lihat Alur PPDB
+                Lihat Alur SPMB
               </a>
             </motion.div>
           </div>
@@ -219,7 +219,7 @@ export default function Home() {
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Alur Pendaftaran PPDB</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Alur Pendaftaran SPMB</h2>
             <p className="text-slate-400 max-w-2xl mx-auto text-lg">
               Ikuti langkah-langkah mudah berikut untuk mendaftarkan putra/putri Anda di SDN Harapan Bangsa.
             </p>
