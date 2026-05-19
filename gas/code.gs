@@ -79,13 +79,22 @@ function setup() {
 }
 
 function doPost(e) {
+  const lock = LockService.getScriptLock();
   try {
+    // Antrekan proses selama maksimal 30 detik agar nomor pendaftaran tidak bentrok ganda
+    lock.waitLock(30000); 
+
     const data = JSON.parse(e.postData.contents);
     
     if (data.action === "login") return handleLogin(data.username, data.password);
     if (data.action === "checkStatus") return handleCheckStatus(data.noPendaftaran);
     if (data.action === "updateStatus") return updateStatus(data.noPendaftaran, data.newStatus);
     if (data.action === "updateSettings") return handleUpdateSettings(data.settings);
+    
+    // Jalur Aman: Mengambil data registrasi massal dilindungi akun admin
+    if (data.action === "getRegistrations") {
+      return handleGetRegistrationsSecure(data.username, data.password);
+    }
     
     return handleRegistration(data);
     
@@ -94,6 +103,9 @@ function doPost(e) {
       status: "error",
       message: error.toString()
     })).setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    // Kunci wajib dilepas dalam kondisi apa pun
+    lock.releaseLock();
   }
 }
 
@@ -103,46 +115,69 @@ function doGet(e) {
       return handleGetSettings();
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName(SHEET_NAME);
-    
-    if (!sheet) {
-      return ContentService.createTextOutput(JSON.stringify({
-        status: "error",
-        message: "Sheet not found"
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
-    const rows = data.slice(1);
-    
-    const result = rows.map(row => {
-      let obj = {};
-      headers.forEach((header, index) => {
-        if (row[index] instanceof Date) {
-           obj[header] = row[index].toISOString();
-        } else {
-           obj[header] = row[index];
-        }
-      });
-      return obj;
-    });
-    
-    // Sort by timestamp descending
-    result.sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp));
-    
+    // Blokir akses langsung tanpa izin ke doGet publik demi keamanan privasi data pendaftar
     return ContentService.createTextOutput(JSON.stringify({
-      status: "success",
-      data: result
+      status: "error",
+      message: "Akses ditolak. Silakan gunakan dashboard admin resmi."
     })).setMimeType(ContentService.MimeType.JSON);
-    
+
   } catch (error) {
     return ContentService.createTextOutput(JSON.stringify({
       status: "error",
       message: error.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+// REPARASI FUNGSI: Mengembalikan data registrasi secara aman (Wajib login admin)
+function handleGetRegistrationsSecure(username, password) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const adminSheet = ss.getSheetByName(ADMIN_SHEET_NAME);
+  if (!adminSheet) throw new Error("Sheet Admin tidak ditemukan");
+  
+  const adminData = adminSheet.getDataRange().getValues();
+  let isAdminValid = false;
+  
+  for (let i = 1; i < adminData.length; i++) {
+    if (adminData[i][0] === username && adminData[i][1] === password) {
+      isAdminValid = true;
+      break;
+    }
+  }
+  
+  if (!isAdminValid) {
+    return ContentService.createTextOutput(JSON.stringify({ 
+      status: "error", 
+      message: "Kredensial admin salah. Akses data ditolak!" 
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  const sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) throw new Error("Sheet Pendaftar tidak ditemukan");
+  
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const rows = data.slice(1);
+  
+  const result = rows.map(row => {
+    let obj = {};
+    headers.forEach((header, index) => {
+      if (row[index] instanceof Date) {
+         obj[header] = row[index].toISOString();
+      } else {
+         obj[header] = row[index];
+      }
+    });
+    return obj;
+  });
+  
+  // Urutkan berdasarkan waktu daftar terbaru
+  result.sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp));
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    status: "success",
+    data: result
+  })).setMimeType(ContentService.MimeType.JSON);
 }
 
 function handleGetSettings() {
@@ -227,7 +262,6 @@ function handleRegistration(data) {
   const lastRow = sheet.getLastRow();
   let nextId = 1;
   if (lastRow > 1) {
-    // Find No Pendaftaran column index
     const noRegIdx = headers.indexOf("No Pendaftaran");
     if (noRegIdx !== -1) {
       const lastNo = sheet.getRange(lastRow, noRegIdx + 1).getValue();
@@ -278,8 +312,6 @@ function handleRegistration(data) {
     noPendaftaran: noPendaftaran
   })).setMimeType(ContentService.MimeType.JSON);
 }
-
-// ... (keep handleLogin, handleCheckStatus, updateStatus, getOrCreateFolder, uploadFile, doOptions as they were)
 
 function handleLogin(username, password) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();

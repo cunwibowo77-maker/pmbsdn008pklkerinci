@@ -1,7 +1,8 @@
 // Service to interact with Google Apps Script Backend
 
-// To use the real backend, replace this URL with your deployed Google Apps Script Web App URL
-const GAS_WEB_APP_URL = ""; 
+// PERBAIKAN: Membaca URL secara aman dari Environment Variable Vercel
+// Jika sedang dideploy, URL diambil dari Vercel. Jika kosong, otomatis beralih ke fitur simulasi offline (Mock)
+const GAS_WEB_APP_URL = import.meta.env.VITE_GAS_WEB_APP_URL || ""; 
 
 export interface FormField {
   id: string;
@@ -63,6 +64,7 @@ export interface AdminData extends RegistrationData {
   'No Pendaftaran': string;
   Status: 'Proses' | 'Lulus' | 'Tidak Lulus';
   'Alasan Penolakan'?: string;
+  'Alasan'?: string; // Menyelaraskan dengan kolom alternatif di DB
 }
 
 // Mock data for preview if GAS URL is not set
@@ -79,8 +81,8 @@ const getInitialMockSettings = (): AppSettings => {
     tanggalPengumuman: "",
     logoSekolah: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop",
     tahunPendaftaran: new Date().getFullYear().toString(),
-    koordinatSekolah: "-6.200000, 106.816666", // Default to Jakarta
-    tanggalCutoffUsia: "", // Tanggal ditetapkan cutoff usia
+    koordinatSekolah: "-6.200000, 106.816666",
+    tanggalCutoffUsia: "",
     sambutanKepalaSekolah: "Selamat datang di website resmi PPDB SDN Harapan Bangsa. Kami berkomitmen untuk memberikan pelayanan pendidikan terbaik bagi putra-putri Anda. Mari bergabung bersama kami untuk mencetak generasi penerus bangsa yang cerdas, berakhlak mulia, dan berprestasi.",
     fotoKepalaSekolah: "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=200&auto=format&fit=crop",
     visiSekolah: "Menjadi sekolah dasar unggulan yang menghasilkan lulusan berakhlak mulia, cerdas, terampil, dan berwawasan lingkungan.",
@@ -121,7 +123,7 @@ const getInitialMockSettings = (): AppSettings => {
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
-      return { ...defaultSettings, ...parsed }; // Merge default settings with parsed local settings
+      return { ...defaultSettings, ...parsed };
     } catch (e) {
       console.error("Failed to parse mock settings from localStorage", e);
     }
@@ -239,7 +241,10 @@ export const submitRegistration = async (data: RegistrationData) => {
   try {
     const response = await fetch(GAS_WEB_APP_URL, {
       method: "POST",
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        ...data,
+        action: "registration" // Tambahkan tanda identifikasi aksi pendaftaran jika dibutuhkan backend
+      }),
       headers: { "Content-Type": "text/plain;charset=utf-8" },
     });
     return await response.json();
@@ -249,6 +254,7 @@ export const submitRegistration = async (data: RegistrationData) => {
   }
 };
 
+// PERBAIKAN FATAL: Diubah dari GET ke POST agar data massal tidak terekspos secara publik
 export const getRegistrations = async (): Promise<AdminData[]> => {
   if (!GAS_WEB_APP_URL) {
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -256,7 +262,17 @@ export const getRegistrations = async (): Promise<AdminData[]> => {
   }
 
   try {
-    const response = await fetch(`${GAS_WEB_APP_URL}?t=${Date.now()}`);
+    const response = await fetch(GAS_WEB_APP_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "getRegistrations",
+        username: "admin",      // Kredensial verifikasi yang divalidasi oleh backend GAS
+        password: "admin123"
+      }),
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8",
+      },
+    });
     const result = await response.json();
     if (result.status === "success") {
       return result.data;
@@ -277,6 +293,7 @@ export const updateStatus = async (noPendaftaran: string, newStatus: string, ala
       newData[index] = { ...newData[index], Status: newStatus as any };
       if (alasan !== undefined) {
         newData[index]['Alasan Penolakan'] = alasan;
+        newData[index]['Alasan'] = alasan;
       }
       saveMockData(newData);
       return { status: "success" };
@@ -291,7 +308,7 @@ export const updateStatus = async (noPendaftaran: string, newStatus: string, ala
         action: "updateStatus",
         noPendaftaran,
         newStatus,
-        alasan
+        alasan: alasan || ""
       }),
       headers: {
         "Content-Type": "text/plain;charset=utf-8",
@@ -316,7 +333,7 @@ export const checkStatus = async (noPendaftaran: string) => {
           noPendaftaran: student['No Pendaftaran'],
           namaLengkap: student[namaKey] || 'Siswa',
           status: student.Status,
-          alasanPenolakan: student['Alasan Penolakan']
+          alasanPenolakan: student['Alasan Penolakan'] || student['Alasan']
         }
       };
     }

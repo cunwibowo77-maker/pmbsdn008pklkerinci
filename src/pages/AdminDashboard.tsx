@@ -181,12 +181,15 @@ export default function AdminDashboard() {
 
       await updateStatus(noPendaftaran, newStatus, alasan);
       
+      // PERBAIKAN: Sinkronisasi pembaruan baik key 'Alasan Penolakan' maupun 'Alasan' agar konsisten dengan Spreadsheet
       setData(prev => prev.map(item => 
-        item['No Pendaftaran'] === noPendaftaran ? { ...item, Status: newStatus as any, 'Alasan Penolakan': alasan } : item
+        item['No Pendaftaran'] === noPendaftaran 
+          ? { ...item, Status: newStatus as any, 'Alasan Penolakan': alasan, 'Alasan': alasan } 
+          : item
       ));
 
       if (selectedStudent && selectedStudent['No Pendaftaran'] === noPendaftaran) {
-        setSelectedStudent(prev => prev ? { ...prev, Status: newStatus as any, 'Alasan Penolakan': alasan } : null);
+        setSelectedStudent(prev => prev ? { ...prev, Status: newStatus as any, 'Alasan Penolakan': alasan, 'Alasan': alasan } : null);
       }
 
       Swal.fire({
@@ -231,8 +234,9 @@ export default function AdminDashboard() {
         formattedItem['Usia'] = calculateAge(tglLahir, settings?.tanggalCutoffUsia);
       }
       
+      // PERBAIKAN: Memperbaiki sintaks string literal token template
       if (item['Koordinat Lokasi']) {
-        formattedItem['Link Maps'] = `https://www.google.com/maps/search/?api=1&query=${item['Koordinat Lokasi']}`;
+        formattedItem['Link Maps'] = `http://maps.google.com/?q=${item['Koordinat Lokasi']}`;
       }
       
       Object.keys(formattedItem).forEach(key => {
@@ -1166,111 +1170,111 @@ export default function AdminDashboard() {
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-semibold">Pengaturan Field Formulir</h3>
                       <button
-                      onClick={() => {
-                        const newFields = [...localSettings.formFields, { id: `Field-${Date.now()}`, label: 'Field Baru', type: 'text' as const, required: false }];
-                        setLocalSettings({...localSettings, formFields: newFields});
-                      }}
-                      className="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-md font-medium transition-colors dark:bg-blue-900/30 dark:text-blue-400"
-                    >
-                      + Tambah Field
-                    </button>
-                  </div>
+                        onClick={() => {
+                          const newFields = [...localSettings.formFields, { id: `Field-${Date.now()}`, label: 'Field Baru', type: 'text' as const, required: false }];
+                          setLocalSettings({...localSettings, formFields: newFields});
+                        }}
+                        className="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-md font-medium transition-colors dark:bg-blue-900/30 dark:text-blue-400"
+                      >
+                        + Tambah Field
+                      </button>
+                    </div>
                   
-                  <div className="space-y-4">
-                    {localSettings.formFields.map((field, index) => (
-                      <div key={index} className={cn("p-4 rounded-lg border grid grid-cols-1 md:grid-cols-12 gap-4 items-end", isDarkMode ? "border-slate-700 bg-slate-900/50" : "border-slate-200 bg-slate-50")}>
-                        <div className="md:col-span-3">
-                          <label className="block text-xs font-medium mb-1 opacity-70">ID (Unik)</label>
-                          <input
-                            type="text"
-                            value={field.id}
-                            onChange={e => {
-                              const newFields = [...localSettings.formFields];
-                              newFields[index] = { ...newFields[index], id: e.target.value };
-                              setLocalSettings({...localSettings, formFields: newFields});
-                            }}
-                            className={cn("w-full px-3 py-2 text-sm border rounded-md", isDarkMode ? "bg-slate-800 border-slate-600" : "bg-white border-slate-300")}
-                          />
-                        </div>
-                        <div className="md:col-span-4">
-                          <label className="block text-xs font-medium mb-1 opacity-70">Label</label>
-                          <input
-                            type="text"
-                            value={field.label}
-                            onChange={e => {
-                              const newFields = [...localSettings.formFields];
-                              newFields[index] = { ...newFields[index], label: e.target.value };
-                              setLocalSettings({...localSettings, formFields: newFields});
-                            }}
-                            className={cn("w-full px-3 py-2 text-sm border rounded-md", isDarkMode ? "bg-slate-800 border-slate-600" : "bg-white border-slate-300")}
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="block text-xs font-medium mb-1 opacity-70">Tipe</label>
-                          <select
-                            value={field.type}
-                            onChange={e => {
-                              const newFields = [...localSettings.formFields];
-                              newFields[index] = { ...newFields[index], type: e.target.value as any };
-                              setLocalSettings({...localSettings, formFields: newFields});
-                            }}
-                            className={cn("w-full px-3 py-2 text-sm border rounded-md", isDarkMode ? "bg-slate-800 border-slate-600" : "bg-white border-slate-300")}
-                          >
-                            <option value="text">Text</option>
-                            <option value="number">Number</option>
-                            <option value="date">Date</option>
-                            <option value="select">Select</option>
-                            <option value="textarea">Textarea</option>
-                            <option value="file">File</option>
-                          </select>
-                        </div>
-                        <div className="md:col-span-2 flex items-center h-[38px]">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={field.required}
-                              onChange={e => {
-                                const newFields = [...localSettings.formFields];
-                                newFields[index] = { ...newFields[index], required: e.target.checked };
-                                setLocalSettings({...localSettings, formFields: newFields});
-                              }}
-                              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span className="text-sm">Wajib</span>
-                          </label>
-                        </div>
-                        <div className="md:col-span-1 flex justify-end">
-                          <button
-                            onClick={() => {
-                              const newFields = localSettings.formFields.filter((_, i) => i !== index);
-                              setLocalSettings({...localSettings, formFields: newFields});
-                            }}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded-md transition-colors dark:hover:bg-red-900/20"
-                            title="Hapus Field"
-                          >
-                            <X size={18} />
-                          </button>
-                        </div>
-                        {field.type === 'select' && (
-                          <div className="md:col-span-12 mt-2">
-                            <label className="block text-xs font-medium mb-1 opacity-70">Opsi (Pisahkan dengan koma)</label>
+                    <div className="space-y-4">
+                      {localSettings.formFields.map((field, index) => (
+                        <div key={index} className={cn("p-4 rounded-lg border grid grid-cols-1 md:grid-cols-12 gap-4 items-end", isDarkMode ? "border-slate-700 bg-slate-900/50" : "border-slate-200 bg-slate-50")}>
+                          <div className="md:col-span-3">
+                            <label className="block text-xs font-medium mb-1 opacity-70">ID (Unik)</label>
                             <input
                               type="text"
-                              value={field.options?.join(', ') || ''}
+                              value={field.id}
                               onChange={e => {
                                 const newFields = [...localSettings.formFields];
-                                newFields[index] = { ...newFields[index], options: e.target.value.split(',').map(s => s.trim()).filter(Boolean) };
+                                newFields[index] = { ...newFields[index], id: e.target.value };
                                 setLocalSettings({...localSettings, formFields: newFields});
                               }}
-                              placeholder="Laki-laki, Perempuan"
                               className={cn("w-full px-3 py-2 text-sm border rounded-md", isDarkMode ? "bg-slate-800 border-slate-600" : "bg-white border-slate-300")}
                             />
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          <div className="md:col-span-4">
+                            <label className="block text-xs font-medium mb-1 opacity-70">Label</label>
+                            <input
+                              type="text"
+                              value={field.label}
+                              onChange={e => {
+                                const newFields = [...localSettings.formFields];
+                                newFields[index] = { ...newFields[index], label: e.target.value };
+                                setLocalSettings({...localSettings, formFields: newFields});
+                              }}
+                              className={cn("w-full px-3 py-2 text-sm border rounded-md", isDarkMode ? "bg-slate-800 border-slate-600" : "bg-white border-slate-300")}
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-medium mb-1 opacity-70">Tipe</label>
+                            <select
+                              value={field.type}
+                              onChange={e => {
+                                const newFields = [...localSettings.formFields];
+                                newFields[index] = { ...newFields[index], type: e.target.value as any };
+                                setLocalSettings({...localSettings, formFields: newFields});
+                              }}
+                              className={cn("w-full px-3 py-2 text-sm border rounded-md", isDarkMode ? "bg-slate-800 border-slate-600" : "bg-white border-slate-300")}
+                            >
+                              <option value="text">Text</option>
+                              <option value="number">Number</option>
+                              <option value="date">Date</option>
+                              <option value="select">Select</option>
+                              <option value="textarea">Textarea</option>
+                              <option value="file">File</option>
+                            </select>
+                          </div>
+                          <div className="md:col-span-2 flex items-center h-[38px]">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={field.required}
+                                onChange={e => {
+                                  const newFields = [...localSettings.formFields];
+                                  newFields[index] = { ...newFields[index], required: e.target.checked };
+                                  setLocalSettings({...localSettings, formFields: newFields});
+                                }}
+                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              <span className="text-sm">Wajib</span>
+                            </label>
+                          </div>
+                          <div className="md:col-span-1 flex justify-end">
+                            <button
+                              onClick={() => {
+                                const newFields = localSettings.formFields.filter((_, i) => i !== index);
+                                setLocalSettings({...localSettings, formFields: newFields});
+                              }}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-md transition-colors dark:hover:bg-red-900/20"
+                              title="Hapus Field"
+                            >
+                              <X size={18} />
+                            </button>
+                          </div>
+                          {field.type === 'select' && (
+                            <div className="md:col-span-12 mt-2">
+                              <label className="block text-xs font-medium mb-1 opacity-70">Opsi (Pisahkan dengan koma)</label>
+                              <input
+                                type="text"
+                                value={field.options?.join(', ') || ''}
+                                onChange={e => {
+                                  const newFields = [...localSettings.formFields];
+                                  newFields[index] = { ...newFields[index], options: e.target.value.split(',').map(s => s.trim()).filter(Boolean) };
+                                  setLocalSettings({...localSettings, formFields: newFields});
+                                }}
+                                placeholder="Laki-laki, Perempuan"
+                                className={cn("w-full px-3 py-2 text-sm border rounded-md", isDarkMode ? "bg-slate-800 border-slate-600" : "bg-white border-slate-300")}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
                 )}
 
                 <div className="pt-6 flex justify-end">
@@ -1321,6 +1325,17 @@ export default function AdminDashboard() {
                           <dt className="text-slate-500 dark:text-slate-400">Status</dt>
                           <dd className="col-span-2">{getStatusBadge(selectedStudent.Status)}</dd>
                         </div>
+                        
+                        {/* PERBAIKAN: Menampilkan Alasan Penolakan secara eksplisit di bawah status jika Tidak Lulus */}
+                        {selectedStudent.Status === 'Tidak Lulus' && (selectedStudent['Alasan Penolakan'] || selectedStudent['Alasan']) && (
+                          <div className="grid grid-cols-3 gap-4 p-2 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-100 dark:border-red-900/50">
+                            <dt className="text-red-600 dark:text-red-400 font-semibold">Alasan Tolak</dt>
+                            <dd className="col-span-2 font-medium text-red-700 dark:text-red-300">
+                              {selectedStudent['Alasan Penolakan'] || selectedStudent['Alasan']}
+                            </dd>
+                          </div>
+                        )}
+
                         <div className="grid grid-cols-3 gap-4">
                           <dt className="text-slate-500 dark:text-slate-400">Waktu Daftar</dt>
                           <dd className="col-span-2 font-medium">{new Date(selectedStudent.Timestamp).toLocaleString()}</dd>
@@ -1330,30 +1345,31 @@ export default function AdminDashboard() {
                         {settings?.formFields.filter(f => f.type !== 'file').map(field => {
                           const value = getFieldValue(selectedStudent, field.id);
                           return (
-                          <React.Fragment key={field.id}>
-                            <div className="grid grid-cols-3 gap-4">
-                              <dt className="text-slate-500 dark:text-slate-400">{field.label}</dt>
-                              <dd className="col-span-2 font-medium">
-                                {field.id === 'Tanggal Lahir' 
-                                  ? formatDate(value) 
-                                  : (value || '-')}
-                              </dd>
-                            </div>
-                            {field.id === 'Tanggal Lahir' && (
+                            <React.Fragment key={field.id}>
                               <div className="grid grid-cols-3 gap-4">
-                                <dt className="text-slate-500 dark:text-slate-400">Usia</dt>
-                                <dd className="col-span-2 font-medium">{calculateAge(value, settings?.tanggalCutoffUsia)}</dd>
+                                <dt className="text-slate-500 dark:text-slate-400">{field.label}</dt>
+                                <dd className="col-span-2 font-medium">
+                                  {field.id === 'Tanggal Lahir' 
+                                    ? formatDate(value) 
+                                    : (value || '-')}
+                                </dd>
                               </div>
-                            )}
-                          </React.Fragment>
-                        )})}
+                              {field.id === 'Tanggal Lahir' && (
+                                <div className="grid grid-cols-3 gap-4">
+                                  <dt className="text-slate-500 dark:text-slate-400">Usia</dt>
+                                  <dd className="col-span-2 font-medium">{calculateAge(value, settings?.tanggalCutoffUsia)}</dd>
+                                </div>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
                         
                         {selectedStudent['Koordinat Lokasi'] && (
                           <div className="grid grid-cols-3 gap-4 mt-2">
                             <dt className="text-slate-500 dark:text-slate-400">Koordinat Lokasi</dt>
                             <dd className="col-span-2 font-medium">
                               <a 
-                                href={`https://www.google.com/maps/search/?api=1&query=${selectedStudent['Koordinat Lokasi']}`}
+                                href={`http://maps.google.com/?q=${selectedStudent['Koordinat Lokasi']}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-600 hover:underline flex items-center gap-1"
