@@ -88,14 +88,15 @@ function doPost(e) {
     
     if (data.action === "login") return handleLogin(data.username, data.password);
     if (data.action === "checkStatus") return handleCheckStatus(data.noPendaftaran);
-    if (data.action === "updateStatus") return updateStatus(data.noPendaftaran, data.newStatus);
+    if (data.action === "updateStatus") return updateStatus(data.noPendaftaran, data.newStatus, data.alasan);
     if (data.action === "updateSettings") return handleUpdateSettings(data.settings);
     
-    // Jalur Aman: Mengambil data registrasi massal dilindungi akun admin
+    // Jalur Aman Admin
     if (data.action === "getRegistrations") {
       return handleGetRegistrationsSecure(data.username, data.password);
     }
     
+    // Menjalankan fungsi pendaftaran bawaan secara aman
     return handleRegistration(data);
     
   } catch (error) {
@@ -115,7 +116,6 @@ function doGet(e) {
       return handleGetSettings();
     }
 
-    // Blokir akses langsung tanpa izin ke doGet publik demi keamanan privasi data pendaftar
     return ContentService.createTextOutput(JSON.stringify({
       status: "error",
       message: "Akses ditolak. Silakan gunakan dashboard admin resmi."
@@ -129,7 +129,6 @@ function doGet(e) {
   }
 }
 
-// REPARASI FUNGSI: Mengembalikan data registrasi secara aman (Wajib login admin)
 function handleGetRegistrationsSecure(username, password) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const adminSheet = ss.getSheetByName(ADMIN_SHEET_NAME);
@@ -171,7 +170,6 @@ function handleGetRegistrationsSecure(username, password) {
     return obj;
   });
   
-  // Urutkan berdasarkan waktu daftar terbaru
   result.sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp));
   
   return ContentService.createTextOutput(JSON.stringify({
@@ -231,70 +229,106 @@ function handleUpdateSettings(newSettings) {
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
-function handleRegistration(sheet, folder, payload) {
-  // 1. Pasang LockService di urutan paling atas untuk mencegah crash data ganda
-  const lock = LockService.getScriptLock();
-  try {
-    // Menunggu maksimal 30 detik jika ada pendaftar lain di detik yang sama
-    lock.waitLock(30000); 
-  } catch (e) {
-    return ContentService.createTextOutput(JSON.stringify({ 
-      status: "error", 
-      message: "Server sedang sibuk, mohon coba beberapa saat lagi." 
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
-
-  try {
-    // 2. Ambil semua data NIK yang sudah ada di database Spreadsheet
-    const data = sheet.getDataRange().getValues();
-    
-    // Cari tahu NIK ada di kolom ke berapa (misal kolom ke-5 atau cari berdasarkan Header 'NIK')
-    const headers = data[0];
-    const nikIdx = headers.indexOf("NIK");
-    
-    const inputNik = payload["NIK"]; // NIK yang sedang diinput oleh siswa
-
-    // 3. LAKUKAN PENGECEKAN DUPLIKASI SEBELUM MENULIS DATA
-    if (nikIdx !== -1 && inputNik) {
-      for (let i = 1; i < data.length; i++) {
-        if (String(data[i][nikIdx]).trim() === String(inputNik).trim()) {
-          
-          // PENTING: Buka kunci kembali sebelum keluar dari program
-          lock.releaseLock(); 
-          
-          // LANGSUNG RETURN: Berhenti di sini dan jangan biarkan skrip menulis baris baru!
-          return ContentService.createTextOutput(JSON.stringify({ 
-            status: "error", 
-            message: "Gagal! NIK tersebut sudah terdaftar di sistem PPDB." 
-          })).setMimeType(ContentService.MimeType.JSON);
-        }
+// PERBAIKAN TOTAL FUNGSI PENDAFTARAN: Pengecekan NIK Duplikat Aktif Semestinya
+function handleRegistration(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAME);
+  
+  // 1. Cek Apakah Status Pendaftaran Buka/Tutup
+  const settingsSheet = ss.getSheetByName(SETTINGS_SHEET_NAME);
+  let isOpen = true;
+  if (settingsSheet) {
+    const settingsData = settingsSheet.getDataRange().getValues();
+    for (let i = 1; i < settingsData.length; i++) {
+      if (settingsData[i][0] === "statusPendaftaran" && settingsData[i][1] === "Tutup") {
+        isOpen = false;
+        break;
       }
     }
+  }
 
-    // =========================================================================
-    // KODE PROSES UPLOAD FILE & PROSES PEMBUATAN NOMOR PENDAFTARAN KAMU DI SINI
-    // =========================================================================
-    
-    // 4. PROSES PENULISAN DATA KE SPREADSHEET (Hanya jalan jika lolos cek NIK di atas)
-    // Contoh penulisan baris baru milikmu:
-    // sheet.appendRow([ ... data pendaftar ... ]);
-    
-    // 5. Lepaskan kunci sukses
-    lock.releaseLock();
-    
-    return ContentService.createTextOutput(JSON.stringify({ 
-      status: "success", 
-      noPendaftaran: noPendaftaranBaru 
-    })).setMimeType(ContentService.MimeType.JSON);
-
-  } catch (error) {
-    lock.releaseLock();
-    return ContentService.createTextOutput(JSON.stringify({ 
-      status: "error", 
-      message: "Terjadi kesalahan sistem: " + error.toString() 
+  if (!isOpen) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error",
+      message: "Pendaftaran sedang ditutup."
     })).setMimeType(ContentService.MimeType.JSON);
   }
+
+  let headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const existingRows = sheet.getDataRange().getValues();
+
+  // 2. PROTEKSI UTAMA: Cek jika NIK sudah ada di Google Sheets sebelum mengunggah file
+  const nikIdx = headers.indexOf("NIK");
+  const inputNik = data["NIK"] || data["NIK *"]; // Menangani variasi pengiriman label NIK
+  
+  if (nikIdx !== -1 && inputNik) {
+    for (let i = 1; i < existingRows.length; i++) {
+      if (String(existingRows[i][nikIdx]).trim() === String(inputNik).trim()) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "error",
+          message: "Gagal! Calon siswa dengan NIK tersebut sudah terdaftar sebelumnya."
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+  }
+  
+  // 3. Logika Membuat Nomor Pendaftaran Otomatis
+  const year = new Date().getFullYear();
+  const lastRow = sheet.getLastRow();
+  let nextId = 1;
+  if (lastRow > 1) {
+    const noRegIdx = headers.indexOf("No Pendaftaran");
+    if (noRegIdx !== -1) {
+      const lastNo = sheet.getRange(lastRow, noRegIdx + 1).getValue();
+      const parts = String(lastNo).split("-");
+      if (parts.length === 3) {
+        nextId = parseInt(parts[2], 10) + 1;
+      }
+    }
+  }
+  const noPendaftaran = `SPMB-${year}-${String(nextId).padStart(3, '0')}`;
+  
+  const folder = getOrCreateFolder(FOLDER_NAME);
+  const rowData = new Array(headers.length).fill("");
+  
+  // 4. Memproses Header Isian & Unggah File ke Drive Pribadi
+  headers.forEach((header, index) => {
+    if (header === "Timestamp") rowData[index] = new Date();
+    else if (header === "No Pendaftaran") rowData[index] = noPendaftaran;
+    else if (header === "Status") rowData[index] = "Proses";
+    else if (data[header] !== undefined) {
+      let value = data[header];
+      if (typeof value === 'string' && value.startsWith('data:')) {
+        value = uploadFile(value, `${noPendaftaran}_${header}`, folder);
+      }
+      rowData[index] = value;
+    }
+  });
+
+  // Menangani penambahan kolom dinamis baru jika terdeteksi di form luar
+  Object.keys(data).forEach(key => {
+    if (key !== "action" && !headers.includes(key)) {
+      headers.push(key);
+      sheet.getRange(1, headers.length).setValue(key);
+      
+      let value = data[key];
+      if (typeof value === 'string' && value.startsWith('data:')) {
+        value = uploadFile(value, `${noPendaftaran}_${key}`, folder);
+      }
+      rowData.push(value);
+    }
+  });
+  
+  // 5. Tulis Baris Baru ke Lembar Excel (Data aman, tidak akan duplikat)
+  sheet.appendRow(rowData);
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    status: "success",
+    message: "Pendaftaran berhasil",
+    noPendaftaran: noPendaftaran
+  })).setMimeType(ContentService.MimeType.JSON);
 }
+
 function handleLogin(username, password) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(ADMIN_SHEET_NAME);
@@ -317,6 +351,7 @@ function handleCheckStatus(noPendaftaran) {
   const noRegIdx = headers.indexOf("No Pendaftaran");
   const namaIdx = headers.indexOf("Nama Lengkap");
   const statusIdx = headers.indexOf("Status");
+  const alasanIdx = headers.indexOf("Alasan Penolakan") !== -1 ? headers.indexOf("Alasan Penolakan") : headers.indexOf("Alasan");
 
   for (let i = 1; i < data.length; i++) {
     if (data[i][noRegIdx] === noPendaftaran) {
@@ -325,7 +360,8 @@ function handleCheckStatus(noPendaftaran) {
         data: {
           noPendaftaran: data[i][noRegIdx],
           namaLengkap: namaIdx !== -1 ? data[i][namaIdx] : "Siswa",
-          status: statusIdx !== -1 ? data[i][statusIdx] : "Proses"
+          status: statusIdx !== -1 ? data[i][statusIdx] : "Proses",
+          alasanPenolakan: alasanIdx !== -1 ? data[i][alasanIdx] : ""
         }
       })).setMimeType(ContentService.MimeType.JSON);
     }
@@ -333,17 +369,21 @@ function handleCheckStatus(noPendaftaran) {
   return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Nomor pendaftaran tidak ditemukan" })).setMimeType(ContentService.MimeType.JSON);
 }
 
-function updateStatus(noPendaftaran, newStatus) {
+function updateStatus(noPendaftaran, newStatus, alasan) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_NAME);
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   const noRegIdx = headers.indexOf("No Pendaftaran");
   const statusIdx = headers.indexOf("Status");
+  const alasanIdx = headers.indexOf("Alasan Penolakan") !== -1 ? headers.indexOf("Alasan Penolakan") : headers.indexOf("Alasan");
   
   for (let i = 1; i < data.length; i++) {
     if (data[i][noRegIdx] === noPendaftaran) {
       sheet.getRange(i + 1, statusIdx + 1).setValue(newStatus);
+      if (alasanIdx !== -1 && alasan !== undefined) {
+        sheet.getRange(i + 1, alasanIdx + 1).setValue(alasan);
+      }
       return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Status berhasil diupdate" })).setMimeType(ContentService.MimeType.JSON);
     }
   }
@@ -364,7 +404,7 @@ function uploadFile(base64Data, filename, folder) {
     const byteCharacters = Utilities.base64Decode(splitBase[1]);
     const blob = Utilities.newBlob(byteCharacters, type, filename);
     const file = folder.createFile(blob);
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    // Dibiarkan tanpa hak akses setSharing publik demi kompatibilitas akun manapun & proteksi data anak
     return file.getUrl();
   } catch (e) {
     return "Error uploading file";

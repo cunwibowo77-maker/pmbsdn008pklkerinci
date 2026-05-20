@@ -294,7 +294,7 @@ export default function CheckStatus() {
                   value={noPendaftaran}
                   onChange={(e) => setNoPendaftaran(e.target.value)}
                   className="flex-grow px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="Contoh: PPDB-2024-001"
+                  placeholder="Contoh: SPMB-2024-001"
                 />
                 <button
                   type="submit"
