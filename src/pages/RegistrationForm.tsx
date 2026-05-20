@@ -192,7 +192,7 @@ export default function RegistrationForm() {
       Swal.fire({
         icon: 'error',
         title: 'Oops...',
-        text: 'Terjadi kesalahan saat mengirim data. Silakan coba lagi.',
+        text: 'Terjadi kesalahan saat mengirim data atau Nik Sudah terdaftar. Silakan coba lagi.',
         confirmButtonColor: '#3b82f6'
       });
     } finally {

@@ -231,88 +231,70 @@ function handleUpdateSettings(newSettings) {
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
-function handleRegistration(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAME);
-  
-  // Check if registration is open
-  const settingsSheet = ss.getSheetByName(SETTINGS_SHEET_NAME);
-  let isOpen = true;
-  if (settingsSheet) {
-    const settingsData = settingsSheet.getDataRange().getValues();
-    for (let i = 1; i < settingsData.length; i++) {
-      if (settingsData[i][0] === "statusPendaftaran" && settingsData[i][1] === "Tutup") {
-        isOpen = false;
-        break;
-      }
-    }
-  }
-
-  if (!isOpen) {
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "error",
-      message: "Pendaftaran sedang ditutup."
+function handleRegistration(sheet, folder, payload) {
+  // 1. Pasang LockService di urutan paling atas untuk mencegah crash data ganda
+  const lock = LockService.getScriptLock();
+  try {
+    // Menunggu maksimal 30 detik jika ada pendaftar lain di detik yang sama
+    lock.waitLock(30000); 
+  } catch (e) {
+    return ContentService.createTextOutput(JSON.stringify({ 
+      status: "error", 
+      message: "Server sedang sibuk, mohon coba beberapa saat lagi." 
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
-  let headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  
-  // Generate No Pendaftaran
-  const year = new Date().getFullYear();
-  const lastRow = sheet.getLastRow();
-  let nextId = 1;
-  if (lastRow > 1) {
-    const noRegIdx = headers.indexOf("No Pendaftaran");
-    if (noRegIdx !== -1) {
-      const lastNo = sheet.getRange(lastRow, noRegIdx + 1).getValue();
-      const parts = String(lastNo).split("-");
-      if (parts.length === 3) {
-        nextId = parseInt(parts[2], 10) + 1;
+  try {
+    // 2. Ambil semua data NIK yang sudah ada di database Spreadsheet
+    const data = sheet.getDataRange().getValues();
+    
+    // Cari tahu NIK ada di kolom ke berapa (misal kolom ke-5 atau cari berdasarkan Header 'NIK')
+    const headers = data[0];
+    const nikIdx = headers.indexOf("NIK");
+    
+    const inputNik = payload["NIK"]; // NIK yang sedang diinput oleh siswa
+
+    // 3. LAKUKAN PENGECEKAN DUPLIKASI SEBELUM MENULIS DATA
+    if (nikIdx !== -1 && inputNik) {
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][nikIdx]).trim() === String(inputNik).trim()) {
+          
+          // PENTING: Buka kunci kembali sebelum keluar dari program
+          lock.releaseLock(); 
+          
+          // LANGSUNG RETURN: Berhenti di sini dan jangan biarkan skrip menulis baris baru!
+          return ContentService.createTextOutput(JSON.stringify({ 
+            status: "error", 
+            message: "Gagal! NIK tersebut sudah terdaftar di sistem PPDB." 
+          })).setMimeType(ContentService.MimeType.JSON);
+        }
       }
     }
+
+    // =========================================================================
+    // KODE PROSES UPLOAD FILE & PROSES PEMBUATAN NOMOR PENDAFTARAN KAMU DI SINI
+    // =========================================================================
+    
+    // 4. PROSES PENULISAN DATA KE SPREADSHEET (Hanya jalan jika lolos cek NIK di atas)
+    // Contoh penulisan baris baru milikmu:
+    // sheet.appendRow([ ... data pendaftar ... ]);
+    
+    // 5. Lepaskan kunci sukses
+    lock.releaseLock();
+    
+    return ContentService.createTextOutput(JSON.stringify({ 
+      status: "success", 
+      noPendaftaran: noPendaftaranBaru 
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    lock.releaseLock();
+    return ContentService.createTextOutput(JSON.stringify({ 
+      status: "error", 
+      message: "Terjadi kesalahan sistem: " + error.toString() 
+    })).setMimeType(ContentService.MimeType.JSON);
   }
-  const noPendaftaran = `PPDB-${year}-${String(nextId).padStart(3, '0')}`;
-  
-  const folder = getOrCreateFolder(FOLDER_NAME);
-  const rowData = new Array(headers.length).fill("");
-  
-  // Fill known headers
-  headers.forEach((header, index) => {
-    if (header === "Timestamp") rowData[index] = new Date();
-    else if (header === "No Pendaftaran") rowData[index] = noPendaftaran;
-    else if (header === "Status") rowData[index] = "Proses";
-    else if (data[header] !== undefined) {
-      let value = data[header];
-      if (typeof value === 'string' && value.startsWith('data:')) {
-        value = uploadFile(value, `${noPendaftaran}_${header}`, folder);
-      }
-      rowData[index] = value;
-    }
-  });
-
-  // Check for new fields in data that aren't in headers
-  Object.keys(data).forEach(key => {
-    if (key !== "action" && !headers.includes(key)) {
-      headers.push(key);
-      sheet.getRange(1, headers.length).setValue(key);
-      
-      let value = data[key];
-      if (typeof value === 'string' && value.startsWith('data:')) {
-        value = uploadFile(value, `${noPendaftaran}_${key}`, folder);
-      }
-      rowData.push(value);
-    }
-  });
-  
-  sheet.appendRow(rowData);
-  
-  return ContentService.createTextOutput(JSON.stringify({
-    status: "success",
-    message: "Pendaftaran berhasil",
-    noPendaftaran: noPendaftaran
-  })).setMimeType(ContentService.MimeType.JSON);
 }
-
 function handleLogin(username, password) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(ADMIN_SHEET_NAME);
