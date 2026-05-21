@@ -64,7 +64,6 @@ export default function RegistrationForm() {
       }
     }
   };
-
 const printProof = (noPendaftaran: string) => {
     const doc = new jsPDF();
     
@@ -99,7 +98,7 @@ const printProof = (noPendaftaran: string) => {
     doc.text(`Tahun Ajaran: ${new Date().getFullYear()} / ${new Date().getFullYear() + 1}`, 105, 43, { align: "center" });
 
     // ==========================================
-    // 3. LOGO CEKLIS HIJAU & STATUS SUKSES (DI TENGAH ATAS)
+    // 3. LOGO CEKLIS HIJAU & STATUS SUKSES
     // ==========================================
     let startY = 60;
 
@@ -108,14 +107,14 @@ const printProof = (noPendaftaran: string) => {
     doc.setDrawColor(22, 163, 74); // green-600
     doc.ellipse(105, startY + 12, 12, 12, 'F');
 
-    // Menggambar Simbol Ceklis Putih di Dalam Lingkaran (Menggunakan Garis Geometri)
-    doc.setDrawColor(255, 255, 255); // Garis Ceklis Putih
+    // Menggambar Simbol Ceklis Putih
+    doc.setDrawColor(255, 255, 255);
     doc.setLineWidth(1.5);
-    doc.line(100, startY + 12, 103, startY + 15); // Garis miring pendek ceklis
-    doc.line(103, startY + 15, 111, startY + 8);  // Garis miring panjang ceklis
+    doc.line(100, startY + 12, 103, startY + 15);
+    doc.line(103, startY + 15, 111, startY + 8);
 
     // Teks Status Keberhasilan
-    doc.setTextColor(22, 163, 74); // Warna teks hijau
+    doc.setTextColor(22, 163, 74);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
     doc.text("PENDAFTARAN BERHASIL", 105, startY + 31, { align: "center" });
@@ -136,7 +135,7 @@ const printProof = (noPendaftaran: string) => {
     doc.text(noPendaftaran, 98, startY + 9.5);
 
     // ==========================================
-    // 4. DATA SPESIFIK PILIHAN (HANYA DATA PENTING)
+    // 4. DATA SPESIFIK UTAMA (BIODATA)
     // ==========================================
     startY += 24;
     doc.setTextColor(30, 41, 59);
@@ -159,8 +158,30 @@ const printProof = (noPendaftaran: string) => {
       return `${day}/${month}/${year}`;
     };
 
-    // Daftar nama label field yang WAJIB dicetak (Sesuai permintaanmu)
-    // Catatan: Pastikan penulisan string di array ini sama persis dengan 'label' di formFields kamu.
+    // Fungsi internal untuk menghitung detail usia saat klik daftar
+    const getDetailAge = (birthDateString: string) => {
+      if (!birthDateString) return '-';
+      const birthDate = new Date(birthDateString);
+      if (isNaN(birthDate.getTime())) return '-';
+      
+      const today = new Date();
+      let years = today.getFullYear() - birthDate.getFullYear();
+      let months = today.getMonth() - birthDate.getMonth();
+      let days = today.getDate() - birthDate.getDate();
+
+      if (days < 0) {
+        months--;
+        const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+        days += prevMonth.getDate();
+      }
+      if (months < 0) {
+        years--;
+        months += 12;
+      }
+      return `${years} Tahun ${months} Bulan ${days} Hari`;
+    };
+
+    // Urutan daftar field teks penting wajib cetak
     const fieldsToPrint = [
       "Nama Lengkap",
       "NISN",
@@ -171,7 +192,6 @@ const printProof = (noPendaftaran: string) => {
     ];
 
     fieldsToPrint.forEach(label => {
-      // Ambil data langsung berdasarkan label masukan formulir siswa
       let value = formData[label] || '-';
       if (label === "Tanggal Lahir") {
         value = formatDate(value);
@@ -184,20 +204,37 @@ const printProof = (noPendaftaran: string) => {
       doc.setFont("helvetica", "normal");
       doc.text(":", 70, startY);
       
-      // Amankan teks panjang jika ada ganti baris otomatis
       const splitText = doc.splitTextToSize(value, 115);
       doc.text(splitText, 73, startY);
       
       startY += lineHeight * splitText.length;
     });
 
-    // Info otomatis tambahan untuk jarak rumah (Zonasi)
+    // 1. Menampilkan Jarak ke Sekolah (Zonasi)
     if (formData['Jarak ke Sekolah (km)']) {
       doc.setFont("helvetica", "bold");
       doc.text("Jarak ke Sekolah", 25, startY);
       doc.setFont("helvetica", "normal");
       doc.text(":", 70, startY);
       doc.text(`${formData['Jarak ke Sekolah (km)']} km`, 73, startY);
+      startY += lineHeight;
+    }
+
+    // 2. TAMBAHAN FITUR: Menampilkan Real-time Usia Tepat di Bawah Field Jarak
+    const birthDateValue = formData["Tanggal Lahir"];
+    if (birthDateValue) {
+      doc.setFont("helvetica", "bold");
+      doc.text("Usia Saat Mendaftar", 25, startY);
+      doc.setFont("helvetica", "normal");
+      doc.text(":", 70, startY);
+      
+      // Hitung umur secara presisi
+      const detailAge = getDetailAge(birthDateValue);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(37, 99, 235); // Warnai biru agar terlihat menonjol dan rapi
+      doc.text(detailAge, 73, startY);
+      
+      doc.setTextColor(30, 41, 59); // Reset kembali ke warna dasar
       startY += lineHeight;
     }
 
@@ -218,7 +255,7 @@ const printProof = (noPendaftaran: string) => {
     doc.text("Tim Verifikator Sekolah", 135, 256);
 
     // ==========================================
-    // 6. CATATAN KAKI (FOOTER)
+    // 6. CATATAN KAKI (FOOTER KARTU)
     // ==========================================
     doc.setFillColor(239, 246, 255); // blue-50
     doc.setDrawColor(191, 219, 254); // blue-200
