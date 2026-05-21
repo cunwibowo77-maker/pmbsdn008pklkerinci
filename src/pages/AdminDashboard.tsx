@@ -321,11 +321,11 @@ export default function AdminDashboard() {
     doc.save(`Kartu_PPDB_${student['No Pendaftaran']}.pdf`);
   };
 
-  // =========================================================================
-  // REVISI SELESAI: Filter & Urutkan Data Berdasarkan Usia Tertua -> Jarak Rumah Terdekat
+// =========================================================================
+  // PERBAIKAN FINAL: Pengurutan Pintar Jalur Zonasi (Usia Mutlak -> Jarak Rumah)
   // =========================================================================
   const filteredData = useMemo(() => {
-    // 1. Dapatkan hasil filter pencarian dan seleksi status terlebih dahulu
+    // 1. Jalankan proses pencarian & filter status seperti biasa
     const result = data.filter(item => {
       const nama = getFieldValue(item, 'Nama Lengkap') || '';
       const nik = getFieldValue(item, 'NIK') || '';
@@ -338,27 +338,46 @@ export default function AdminDashboard() {
       return matchesSearch && matchesFilter;
     });
 
-    // 2. Terapkan algoritma sorting kriteria ganda seleksi zonasi
-    return result.sort((a, b) => {
-      const tglLahirA = getFieldValue(a, 'Tanggal Lahir');
-      const tglLahirB = getFieldValue(b, 'Tanggal Lahir');
+    // Fungsi pembantu untuk mengubah format DD/MM/YYYY menjadi YYYY-MM-DD agar bisa dihitung komputer
+    const parseToStandardDate = (dateStr: string) => {
+      if (!dateStr) return 0;
+      // Jika formatnya sudah standar internasional (ada tanda strip YYYY-MM-DD)
+      if (dateStr.includes('-')) return new Date(dateStr).getTime() || 0;
       
-      const dateA = tglLahirA ? new Date(tglLahirA).getTime() : 0;
-      const dateB = tglLahirB ? new Date(tglLahirB).getTime() : 0;
+      // Jika formatnya Indonesia menggunakan garis miring (DD/MM/YYYY)
+      if (dateStr.includes('/')) {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+          // Susun ulang menjadi format: Tahun-Bulan-Hari
+          const formatted = `${parts[2]}-${parts[1]}-${parts[0]}`;
+          return new Date(formatted).getTime() || 0;
+        }
+      }
+      return 0;
+    };
 
-      // Kriteria Utama: Usia Paling Tua ditaruh paling atas (Nilai timestamp terkecil)
+    // 2. Terapkan fungsi pemeringkatan kriteria ganda seleksi zonasi
+    return result.sort((a, b) => {
+      const tglLahirA = getFieldValue(a, 'Tanggal Lahir') || '';
+      const tglLahirB = getFieldValue(b, 'Tanggal Lahir') || '';
+      
+      // Konversi tanggal lahir ke milidetik secara aman
+      const dateA = parseToStandardDate(tglLahirA);
+      const dateB = parseToStandardDate(tglLahirB);
+
+      // Kriteria 1: Urutkan Berdasarkan Usia Tertua (Tanggal lahir paling kecil/lampau nilainya)
       if (dateA !== dateB) {
         return dateA - dateB;
       }
 
-      // Kriteria Cadangan: Jika lahir di hari yang sama, saring berdasarkan Jarak Terdekat (Angka terkecil)
+      // Kriteria 2: JALUR ZONASI JIKA USIA KEMBAR (Urutkan berdasarkan Jarak Terdekat)
       const jarakTextA = a['Jarak ke Sekolah (km)'] || '999';
       const jarakTextB = b['Jarak ke Sekolah (km)'] || '999';
       
       const jarakA = parseFloat(jarakTextA);
       const jarakB = parseFloat(jarakTextB);
 
-      return jarakA - jarakB;
+      return jarakA - jarakB; // Jarak terkecil otomatis naik ke paling atas
     });
   }, [data, searchTerm, statusFilter, settings]);
 
