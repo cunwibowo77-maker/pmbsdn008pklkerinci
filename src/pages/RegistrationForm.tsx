@@ -65,26 +65,89 @@ export default function RegistrationForm() {
     }
   };
 
-  const printProof = (noPendaftaran: string) => {
+const printProof = (noPendaftaran: string) => {
     const doc = new jsPDF();
     
-    // Header
-    doc.setFillColor(37, 99, 235); // blue-600
-    doc.rect(0, 0, 210, 40, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(22);
-    doc.setFont("helvetica", "bold");
-    doc.text("BUKTI PENDAFTARAN SPMB", 105, 20, { align: "center" });
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "normal");
-    doc.text(settings?.namaSekolah || "SDN 008 PKL KERINCI", 105, 30, { align: "center" });
+    // ==========================================
+    // 1. BINGKAI KARTU (BORDER)
+    // ==========================================
+    doc.setDrawColor(37, 99, 235); // Warna Biru Modern (blue-600)
+    doc.setLineWidth(1.5);
+    doc.rect(10, 10, 190, 277); // Bingkai luar halaman
 
-    // Content
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(12);
+    doc.setDrawColor(226, 232, 240); // Warna Abu-abu halus (slate-200)
+    doc.setLineWidth(0.5);
+    doc.rect(13, 13, 184, 271); // Bingkai dalam
+
+    // ==========================================
+    // 2. KOP HEADER KARTU
+    // ==========================================
+    doc.setFillColor(37, 99, 235); // Latar biru header
+    doc.rect(14, 14, 182, 35, 'F');
+
+    doc.setTextColor(255, 255, 255); // Teks Putih
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.text("KARTU BUKTI PENDAFTARAN", 105, 27, { align: "center" });
     
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(13);
+    doc.text(settings?.namaSekolah || "SDN 008 PKL KERINCI", 105, 36, { align: "center" });
+    
+    doc.setFontSize(10);
+    doc.setTextColor(219, 234, 254);
+    doc.text(`Tahun Ajaran: ${new Date().getFullYear()} / ${new Date().getFullYear() + 1}`, 105, 43, { align: "center" });
+
+    // ==========================================
+    // 3. LOGO CEKLIS HIJAU & STATUS SUKSES (DI TENGAH ATAS)
+    // ==========================================
     let startY = 60;
-    const lineHeight = 10;
+
+    // Menggambar Lingkaran Hijau untuk Ceklis
+    doc.setFillColor(34, 197, 94); // Warna Hijau Sukses (green-500)
+    doc.setDrawColor(22, 163, 74); // green-600
+    doc.ellipse(105, startY + 12, 12, 12, 'F');
+
+    // Menggambar Simbol Ceklis Putih di Dalam Lingkaran (Menggunakan Garis Geometri)
+    doc.setDrawColor(255, 255, 255); // Garis Ceklis Putih
+    doc.setLineWidth(1.5);
+    doc.line(100, startY + 12, 103, startY + 15); // Garis miring pendek ceklis
+    doc.line(103, startY + 15, 111, startY + 8);  // Garis miring panjang ceklis
+
+    // Teks Status Keberhasilan
+    doc.setTextColor(22, 163, 74); // Warna teks hijau
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("PENDAFTARAN BERHASIL", 105, startY + 31, { align: "center" });
+
+    // Box Sorotan Nomor Pendaftaran (SPMB)
+    startY += 38;
+    doc.setFillColor(248, 250, 252); // slate-50
+    doc.setDrawColor(203, 213, 225); // slate-300
+    doc.setLineWidth(0.5);
+    doc.rect(20, startY, 170, 14, 'DF');
+
+    doc.setTextColor(30, 41, 59); // slate-800
+    doc.setFontSize(11);
+    doc.text("NOMOR PENDAFTARAN (SPMB) :", 25, startY + 9);
+    
+    doc.setTextColor(220, 38, 38); // Merah cerah (red-600)
+    doc.setFontSize(14);
+    doc.text(noPendaftaran, 98, startY + 9.5);
+
+    // ==========================================
+    // 4. DATA SPESIFIK PILIHAN (HANYA DATA PENTING)
+    // ==========================================
+    startY += 24;
+    doc.setTextColor(30, 41, 59);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("BIODATA PESERTA DIDIK", 20, startY);
+    doc.setDrawColor(37, 99, 235);
+    doc.line(20, startY + 2, 75, startY + 2);
+    
+    startY += 12;
+    const lineHeight = 9;
     
     const formatDate = (dateString: string) => {
       if (!dateString) return '-';
@@ -95,45 +158,79 @@ export default function RegistrationForm() {
       const year = date.getFullYear();
       return `${day}/${month}/${year}`;
     };
-    
-    doc.setFont("helvetica", "bold");
-    doc.text("No. Pendaftaran", 20, startY);
-    doc.text(":", 70, startY);
-    doc.text(noPendaftaran, 75, startY);
-    startY += lineHeight;
 
-    doc.setFont("helvetica", "normal");
-    
-    settings?.formFields?.forEach(field => {
-      if (field.type !== 'file') {
-        doc.text(field.label, 20, startY);
-        doc.text(":", 70, startY);
-        let value = formData[field.label] || '-';
-        if (field.type === 'date') {
-          value = formatDate(value);
-        }
-        
-        // Handle long text
-        const splitText = doc.splitTextToSize(value, 115);
-        doc.text(splitText, 75, startY);
-        startY += lineHeight * splitText.length;
+    // Daftar nama label field yang WAJIB dicetak (Sesuai permintaanmu)
+    // Catatan: Pastikan penulisan string di array ini sama persis dengan 'label' di formFields kamu.
+    const fieldsToPrint = [
+      "Nama Lengkap",
+      "NISN",
+      "Tempat Lahir",
+      "Tanggal Lahir",
+      "Jenis Kelamin",
+      "Agama"
+    ];
+
+    fieldsToPrint.forEach(label => {
+      // Ambil data langsung berdasarkan label masukan formulir siswa
+      let value = formData[label] || '-';
+      if (label === "Tanggal Lahir") {
+        value = formatDate(value);
       }
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text(label, 25, startY);
+      
+      doc.setFont("helvetica", "normal");
+      doc.text(":", 70, startY);
+      
+      // Amankan teks panjang jika ada ganti baris otomatis
+      const splitText = doc.splitTextToSize(value, 115);
+      doc.text(splitText, 73, startY);
+      
+      startY += lineHeight * splitText.length;
     });
 
-    // PERBAIKAN: Perbaikan template literal tautan lokasi maps pada cetakan PDF bukti pendaftaran
-    if (formData['Koordinat Lokasi']) {
-      doc.text("Koordinat Lokasi", 20, startY);
+    // Info otomatis tambahan untuk jarak rumah (Zonasi)
+    if (formData['Jarak ke Sekolah (km)']) {
+      doc.setFont("helvetica", "bold");
+      doc.text("Jarak ke Sekolah", 25, startY);
+      doc.setFont("helvetica", "normal");
       doc.text(":", 70, startY);
-      doc.text(`http://maps.google.com/?q=${formData['Koordinat Lokasi']}`, 75, startY);
+      doc.text(`${formData['Jarak ke Sekolah (km)']} km`, 73, startY);
       startY += lineHeight;
     }
 
-    // Footer
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text("Simpan bukti pendaftaran ini untuk mengecek status kelulusan.", 105, 280, { align: "center" });
+    // ==========================================
+    // 5. AREA VALIDASI / TANDA TANGAN PANITIA
+    // ==========================================
+    const tempat = settings?.tempatSurat || "Pangkalan Kerinci";
+    const today = new Date();
+    const dateStr = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+    const tanggalSurat = settings?.tanggalSurat || dateStr;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.text(`${tempat}, ${tanggalSurat}`, 135, 220);
+    doc.text("Panitia Pendaftaran,", 135, 226);
+    doc.text("..........................................", 135, 250);
+    doc.setFont("helvetica", "bold");
+    doc.text("Tim Verifikator Sekolah", 135, 256);
+
+    // ==========================================
+    // 6. CATATAN KAKI (FOOTER)
+    // ==========================================
+    doc.setFillColor(239, 246, 255); // blue-50
+    doc.setDrawColor(191, 219, 254); // blue-200
+    doc.setLineWidth(0.3);
+    doc.rect(15, 273, 180, 10, 'DF');
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(37, 99, 235);
+    doc.text("Simpan kartu bukti ini dengan baik. Gunakan nomor pendaftaran di atas untuk mengecek status seleksi secara berkala.", 105, 279.5, { align: "center" });
     
-    // PENYELARASAN: Mengubah nama file unduhan otomatis menjadi istilah SPMB
+    // Unduh otomatis PDF
     doc.save(`Bukti_SPMB_${noPendaftaran}.pdf`);
   };
 
