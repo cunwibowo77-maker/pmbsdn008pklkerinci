@@ -271,36 +271,13 @@ const printProof = (noPendaftaran: string) => {
     doc.save(`Bukti_SPMB_${noPendaftaran}.pdf`);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!isAgreed) {
       Swal.fire({
         icon: 'warning',
-        title: 'Pernyataan Belum Disetujui',
-        text: 'Anda harus menyetujui pernyataan kebenaran data sebelum mengirim formulir.',
-        confirmButtonColor: '#3b82f6'
-      });
-      return;
-    }
-
-    // Basic validation for files
-    const missingFiles = settings?.formFields?.filter(f => f.type === 'file' && f.required && !formData[f.label]);
-    if (missingFiles && missingFiles.length > 0) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Berkas Belum Lengkap',
-        text: `Mohon unggah dokumen: ${missingFiles.map(f => f.label).join(', ')}`,
-        confirmButtonColor: '#3b82f6'
-      });
-      return;
-    }
-
-    if (!mapLocation) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Lokasi Belum Ditandai',
-        text: 'Mohon tandai lokasi rumah Anda di peta.',
+        title: 'Pernyataan Kebenaran Data',
+        text: 'Anda harus menyetujui pernyataan kebenaran data sebelum mengirim pendaftaran.',
         confirmButtonColor: '#3b82f6'
       });
       return;
@@ -309,36 +286,75 @@ const printProof = (noPendaftaran: string) => {
     setIsSubmitting(true);
 
     try {
-      const response = await submitRegistration(formData);
+      // --- TAMBAHAN LOGIKA UNTUK MENGHITUNG USIA SECARA OTOMATIS ---
+      const birthDateValue = formData["Tanggal Lahir"];
+      let hitungUsia = "-";
       
-      if (response.status === 'success') {
+      if (birthDateValue) {
+        const birthDate = new Date(birthDateValue);
+        if (!isNaN(birthDate.getTime())) {
+          const today = new Date();
+          let years = today.getFullYear() - birthDate.getFullYear();
+          let months = today.getMonth() - birthDate.getMonth();
+          let days = today.getDate() - birthDate.getDate();
+
+          if (days < 0) {
+            months--;
+            const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+            days += prevMonth.getDate();
+          }
+          if (months < 0) {
+            years--;
+            months += 12;
+          }
+          hitungUsia = `${years} Tahun ${months} Bulan ${days} Hari`;
+        }
+      }
+      // ------------------------------------------------------------
+
+      // Gabungkan data form siswa asli dengan data Jarak dan data Usia baru
+      const finalFormData = {
+        ...formData,
+        ...(distance !== null ? { 'Jarak ke Sekolah (km)': distance.toFixed(2) } : {}),
+        'Usia': hitungUsia // Menyisipkan data usia agar ikut terkirim ke Google Sheets
+      };
+
+      const result = await submitRegistration(finalFormData);
+
+      if (result.status === 'success') {
         Swal.fire({
           icon: 'success',
           title: 'Pendaftaran Berhasil!',
-          html: `Nomor Pendaftaran Anda:<br><b style="font-size: 1.5rem; color: #2563eb;">${response.noPendaftaran}</b><br><br>Simpan nomor ini untuk mengecek status kelulusan.`,
-          confirmButtonColor: '#3b82f6',
-          confirmButtonText: 'Unduh Bukti Pendaftaran',
-          showCancelButton: true,
-          cancelButtonText: 'Tutup',
+          html: `Selamat! Pendaftaran Anda telah berhasil diproses.<br/><br/>Nomor Pendaftaran Anda:<br/><b class="text-2xl text-blue-600">${result.noPendaftaran}</b><br/><br/>Silakan download bukti pendaftaran di bawah ini.`,
+          confirmButtonText: 'Download Bukti Pendaftaran',
+          confirmButtonColor: '#22c55e',
           allowOutsideClick: false
-        }).then((result) => {
-          if (result.isConfirmed) {
-            printProof(response.noPendaftaran);
+        }).then((res) => {
+          if (res.isConfirmed) {
+            printProof(result.noPendaftaran);
           }
-          // Reset form
-          window.location.href = '/';
         });
+        
+        // Reset Form setelah sukses
+        setFormData({});
+        setPreviews({});
+        setMapLocation(null);
+        setDistance(null);
+        setIsAgreed(false);
       } else {
-        // Melempar pesan error spesifik jika status yang dikembalikan backend bernilai "error"
-        throw new Error(response.message || 'Terjadi kesalahan pada sistem.');
+        Swal.fire({
+          icon: 'error',
+          title: 'Pendaftaran Gagal',
+          text: result.message || 'Terjadi kesalahan saat mengirim pendaftaran.',
+          confirmButtonColor: '#ef4444'
+        });
       }
-    } catch (error: any) {
-      // PERBAIKAN UTAMA: Menangkap pesan penolakan NIK ganda asli dari server Google Apps Script secara dinamis
+    } catch (error) {
       Swal.fire({
         icon: 'error',
-        title: 'Pendaftaran Gagal',
-        text: error.message || 'Terjadi kesalahan saat mengirim data atau NIK sudah terdaftar. Silakan coba lagi.',
-        confirmButtonColor: '#3b82f6'
+        title: 'Error',
+        text: 'Terjadi kesalahan sistem pendaftaran.',
+        confirmButtonColor: '#ef4444'
       });
     } finally {
       setIsSubmitting(false);
