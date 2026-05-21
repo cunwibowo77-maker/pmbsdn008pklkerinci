@@ -77,7 +77,7 @@ export default function RegistrationForm() {
     doc.text("BUKTI PENDAFTARAN SPMB", 105, 20, { align: "center" });
     doc.setFontSize(14);
     doc.setFont("helvetica", "normal");
-    doc.text(settings?.namaSekolah || "SDN Harapan Bangsa", 105, 30, { align: "center" });
+    doc.text(settings?.namaSekolah || "SDN 008 PKL KERINCI", 105, 30, { align: "center" });
 
     // Content
     doc.setTextColor(0, 0, 0);
@@ -120,12 +120,21 @@ export default function RegistrationForm() {
       }
     });
 
+    // PERBAIKAN: Perbaikan template literal tautan lokasi maps pada cetakan PDF bukti pendaftaran
+    if (formData['Koordinat Lokasi']) {
+      doc.text("Koordinat Lokasi", 20, startY);
+      doc.text(":", 70, startY);
+      doc.text(`http://maps.google.com/?q=${formData['Koordinat Lokasi']}`, 75, startY);
+      startY += lineHeight;
+    }
+
     // Footer
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
     doc.text("Simpan bukti pendaftaran ini untuk mengecek status kelulusan.", 105, 280, { align: "center" });
     
-    doc.save(`Bukti_Pendaftaran_${noPendaftaran}.pdf`);
+    // PENYELARASAN: Mengubah nama file unduhan otomatis menjadi istilah SPMB
+    doc.save(`Bukti_SPMB_${noPendaftaran}.pdf`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -186,13 +195,15 @@ export default function RegistrationForm() {
           window.location.href = '/';
         });
       } else {
-        throw new Error(response.message || 'Terjadi kesalahan');
+        // Melempar pesan error spesifik jika status yang dikembalikan backend bernilai "error"
+        throw new Error(response.message || 'Terjadi kesalahan pada sistem.');
       }
-    } catch (error) {
+    } catch (error: any) {
+      // PERBAIKAN UTAMA: Menangkap pesan penolakan NIK ganda asli dari server Google Apps Script secara dinamis
       Swal.fire({
         icon: 'error',
-        title: 'Oops...',
-        text: 'Terjadi kesalahan saat mengirim data atau Nik Sudah terdaftar. Silakan coba lagi.',
+        title: 'Pendaftaran Gagal',
+        text: error.message || 'Terjadi kesalahan saat mengirim data atau NIK sudah terdaftar. Silakan coba lagi.',
         confirmButtonColor: '#3b82f6'
       });
     } finally {
@@ -266,7 +277,7 @@ export default function RegistrationForm() {
             {previews[field.label] ? (
               <div className="absolute inset-0">
                 {previews[field.label].startsWith('data:image') ? (
-                  <img src={previews[field.label]} alt="Preview" className="w-full h-full object-cover" />
+                  <img src={previews[field.label]} alt={field.label} className="w-full h-full object-cover" />
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full p-4 text-center bg-blue-50">
                     <FileText className="w-12 h-12 text-blue-500 mb-2" />
