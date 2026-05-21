@@ -64,7 +64,8 @@ export default function RegistrationForm() {
       }
     }
   };
-const printProof = (noPendaftaran: string) => {
+
+  const printProof = (noPendaftaran: string) => {
     const doc = new jsPDF();
     
     // ==========================================
@@ -271,7 +272,7 @@ const printProof = (noPendaftaran: string) => {
     doc.save(`Bukti_SPMB_${noPendaftaran}.pdf`);
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAgreed) {
       Swal.fire({
@@ -360,6 +361,23 @@ const handleSubmit = async (e: React.FormEvent) => {
       setIsSubmitting(false);
     }
   };
+
+  // =========================================================================
+  // BARIS 269: AMANAN BARU LAYAR LOADING ANTI FORMULIR KOSONG
+  // =========================================================================
+  if (!settings || !settings.formFields || settings.formFields.length === 0) {
+    return (
+      <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-100 text-center p-8 flex flex-col items-center">
+          <Loader2 className="animate-spin text-blue-600 mb-4" size={50} />
+          <h3 className="text-xl font-bold text-slate-900 mb-2">Memuat Formulir...</h3>
+          <p className="text-slate-500 text-sm">
+            Sedang mengambil konfigurasi database sekolah. Mohon tunggu sejenak.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (isClosed) {
     return (
@@ -553,7 +571,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 </div>
                 <div className="text-sm text-slate-700">
                   <span className="font-semibold block mb-1">Pernyataan Kebenaran Data</span>
-                  Saya menyatakan bahwa data yang saya isikan dalam formulir pendaftaran ini adalah benar dan dapat dipertanggungjawabkan. Apabila di kemudian hari ditemukan data yang tidak sesuai, saya bersedia menerima sanksi sesuai ketentuan yang berlaku.
+                  Saya menyatakan bahwa data yang saya isikan dalam formulir pendaftaran ini adalah benar and dapat dipertanggungjawabkan. Apabila di kemudian hari ditemukan data yang tidak sesuai, saya bersedia menerima sanksi sesuai ketentuan yang berlaku.
                 </div>
               </label>
             </div>
