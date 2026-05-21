@@ -321,8 +321,12 @@ export default function AdminDashboard() {
     doc.save(`Kartu_PPDB_${student['No Pendaftaran']}.pdf`);
   };
 
+  // =========================================================================
+  // REVISI SELESAI: Filter & Urutkan Data Berdasarkan Usia Tertua -> Jarak Rumah Terdekat
+  // =========================================================================
   const filteredData = useMemo(() => {
-    return data.filter(item => {
+    // 1. Dapatkan hasil filter pencarian dan seleksi status terlebih dahulu
+    const result = data.filter(item => {
       const nama = getFieldValue(item, 'Nama Lengkap') || '';
       const nik = getFieldValue(item, 'NIK') || '';
       const no = item['No Pendaftaran'] || '';
@@ -333,7 +337,30 @@ export default function AdminDashboard() {
       const matchesFilter = statusFilter === 'Semua' || item.Status === statusFilter;
       return matchesSearch && matchesFilter;
     });
-  }, [data, searchTerm, statusFilter]);
+
+    // 2. Terapkan algoritma sorting kriteria ganda seleksi zonasi
+    return result.sort((a, b) => {
+      const tglLahirA = getFieldValue(a, 'Tanggal Lahir');
+      const tglLahirB = getFieldValue(b, 'Tanggal Lahir');
+      
+      const dateA = tglLahirA ? new Date(tglLahirA).getTime() : 0;
+      const dateB = tglLahirB ? new Date(tglLahirB).getTime() : 0;
+
+      // Kriteria Utama: Usia Paling Tua ditaruh paling atas (Nilai timestamp terkecil)
+      if (dateA !== dateB) {
+        return dateA - dateB;
+      }
+
+      // Kriteria Cadangan: Jika lahir di hari yang sama, saring berdasarkan Jarak Terdekat (Angka terkecil)
+      const jarakTextA = a['Jarak ke Sekolah (km)'] || '999';
+      const jarakTextB = b['Jarak ke Sekolah (km)'] || '999';
+      
+      const jarakA = parseFloat(jarakTextA);
+      const jarakB = parseFloat(jarakTextB);
+
+      return jarakA - jarakB;
+    });
+  }, [data, searchTerm, statusFilter, settings]);
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const currentData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -809,7 +836,7 @@ export default function AdminDashboard() {
                           value={localSettings.persyaratanDaftarUlang || ''}
                           onChange={e => setLocalSettings({...localSettings, persyaratanDaftarUlang: e.target.value})}
                           rows={5}
-                          placeholder="1. Syarat pertama&#10;2. Syarat kedua"
+                          placeholder="1. Syarat pertama\n2. Syarat kedua"
                           className={cn("w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500", isDarkMode ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300")}
                         />
                       </div>
@@ -873,7 +900,7 @@ export default function AdminDashboard() {
                           value={localSettings.misiSekolah || ''}
                           onChange={e => setLocalSettings({...localSettings, misiSekolah: e.target.value})}
                           rows={5}
-                          placeholder="1. Misi pertama&#10;2. Misi kedua"
+                          placeholder="1. Misi pertama\n2. Misi kedua"
                           className={cn("w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500", isDarkMode ? "bg-slate-900 border-slate-700 text-white" : "bg-white border-slate-300")}
                         />
                       </div>
@@ -1326,7 +1353,6 @@ export default function AdminDashboard() {
                           <dd className="col-span-2">{getStatusBadge(selectedStudent.Status)}</dd>
                         </div>
                         
-                        {/* PERBAIKAN: Menampilkan Alasan Penolakan secara eksplisit di bawah status jika Tidak Lulus */}
                         {selectedStudent.Status === 'Tidak Lulus' && (selectedStudent['Alasan Penolakan'] || selectedStudent['Alasan']) && (
                           <div className="grid grid-cols-3 gap-4 p-2 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-100 dark:border-red-900/50">
                             <dt className="text-red-600 dark:text-red-400 font-semibold">Alasan Tolak</dt>
