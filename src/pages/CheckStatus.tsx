@@ -163,7 +163,7 @@ export default function CheckStatus() {
     
     if (settings?.tandaTanganKepalaSekolah) {
       try {
-        doc.addImage(settings.tandaTanganKepalaSekolah, 'PNG', 140, currentY + 10, 32, 32);
+        doc.addImage(settings.tandaTanganKepalaSekolah, 'PNG', 140, currentY + 10, 29, 29);
       } catch (e) {
         console.error("Error adding tanda tangan", e);
       }
