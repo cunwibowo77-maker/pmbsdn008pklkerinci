@@ -266,9 +266,8 @@ export default function AdminDashboard() {
     doc.text("KARTU PENDAFTARAN SPMB", 105, 20, { align: "center" });
     doc.setFontSize(14);
     doc.setFont("helvetica", "normal");
+    // PERBAIKAN: Pastikan string
     doc.text(String(settings?.namaSekolah || "Sekolah Dasar"), 105, 30, { align: "center" });
-    
-    //doc.text(settings?.namaSekolah || "Sekolah Dasar", 105, 30, { align: "center" });
 
     // Content
     doc.setTextColor(0, 0, 0);
@@ -280,39 +279,46 @@ export default function AdminDashboard() {
     doc.setFont("helvetica", "bold");
     doc.text("No. Pendaftaran:", 20, startY);
     doc.setFont("helvetica", "normal");
-    doc.text(student['No Pendaftaran'], 70, startY);
+    // PERBAIKAN: Dibungkus dengan String() untuk mencegah error jsPDF
+    doc.text(String(student['No Pendaftaran'] || '-'), 70, startY);
 
     doc.setFont("helvetica", "bold");
     doc.text("Nama Lengkap:", 20, startY + lineHeight);
     doc.setFont("helvetica", "normal");
-    doc.text(getFieldValue(student, 'Nama Lengkap') || '-', 70, startY + lineHeight);
+    // PERBAIKAN: Dibungkus dengan String()
+    doc.text(String(getFieldValue(student, 'Nama Lengkap') || '-'), 70, startY + lineHeight);
 
     doc.setFont("helvetica", "bold");
     doc.text("NIK:", 20, startY + lineHeight * 2);
     doc.setFont("helvetica", "normal");
-    doc.text(getFieldValue(student, 'NIK') || '-', 70, startY + lineHeight * 2);
+    // PERBAIKAN: Dibungkus dengan String() (Ini penyebab utama error-nya)
+    doc.text(String(getFieldValue(student, 'NIK') || '-'), 70, startY + lineHeight * 2);
 
     doc.setFont("helvetica", "bold");
     doc.text("TTL:", 20, startY + lineHeight * 3);
     doc.setFont("helvetica", "normal");
+    // Aman karena sudah menggunakan template literal (backtick)
     doc.text(`${getFieldValue(student, 'Tempat Lahir') || '-'}, ${formatDate(getFieldValue(student, 'Tanggal Lahir'))}`, 70, startY + lineHeight * 3);
 
     doc.setFont("helvetica", "bold");
     doc.text("Usia:", 20, startY + lineHeight * 4);
     doc.setFont("helvetica", "normal");
-    doc.text(calculateAge(getFieldValue(student, 'Tanggal Lahir'), settings?.tanggalCutoffUsia), 70, startY + lineHeight * 4);
+    // PERBAIKAN: Dibungkus dengan String()
+    doc.text(String(calculateAge(getFieldValue(student, 'Tanggal Lahir'), settings?.tanggalCutoffUsia) || '-'), 70, startY + lineHeight * 4);
 
     doc.setFont("helvetica", "bold");
     doc.text("Status:", 20, startY + lineHeight * 5);
     doc.setFont("helvetica", "normal");
-    doc.text(student.Status, 70, startY + lineHeight * 5);
+    // PERBAIKAN: Dibungkus dengan String()
+    doc.text(String(student.Status || '-'), 70, startY + lineHeight * 5);
 
     // Footer
     doc.setDrawColor(200, 200, 200);
     doc.line(20, startY + lineHeight * 7, 190, startY + lineHeight * 7);
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text(`Kartu ini adalah bukti sah pendaftaran SPMB ${settings?.namaSekolah || 'Sekolah'}.`, 105, startY + lineHeight * 8, { align: "center" });
+    // PERBAIKAN: Pastikan template literal aman
+    doc.text(`Kartu ini adalah bukti sah pendaftaran SPMB ${String(settings?.namaSekolah || 'Sekolah')}.`, 105, startY + lineHeight * 8, { align: "center" });
     doc.text(`Dicetak pada: ${new Date().toLocaleString()}`, 105, startY + lineHeight * 8.5, { align: "center" });
 
     // Box around everything
@@ -320,7 +326,7 @@ export default function AdminDashboard() {
     doc.setLineWidth(1);
     doc.rect(10, 10, 190, 150);
 
-    doc.save(`Kartu_PPDB_${student['No Pendaftaran']}.pdf`);
+    doc.save(`Kartu_PPDB_${String(student['No Pendaftaran'] || 'Siswa')}.pdf`);
   };
 
 // =========================================================================
