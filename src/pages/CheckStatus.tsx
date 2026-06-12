@@ -163,17 +163,32 @@ export default function CheckStatus() {
     
     if (settings?.tandaTanganKepalaSekolah) {
       try {
-        doc.addImage(settings.tandaTanganKepalaSekolah, 'PNG', 140, currentY + 10, 40, 20);
+        doc.addImage(
+          settings.tandaTanganKepalaSekolah,
+          'PNG',
+          138,
+          currentY + 10,
+          50,
+          25
+        );
       } catch (e) {
         console.error("Error adding tanda tangan", e);
       }
     }
     
     doc.setFont('helvetica', 'bold');
-    doc.text(settings?.namaKepalaSekolah || 'Kepala Sekolah', 140, currentY + 35);
+    doc.text(
+      settings?.namaKepalaSekolah || 'Kepala Sekolah',
+      140,
+      currentY + 45
+    );
     doc.setFont('helvetica', 'normal');
     if (settings?.nipKepalaSekolah) {
-      doc.text(`NIP. ${settings.nipKepalaSekolah}`, 140, currentY + 40);
+      doc.text(
+        `NIP. ${settings.nipKepalaSekolah}`,
+        140,
+        currentY + 50
+      );
     }
     
     // Catatan Tambahan
