@@ -266,7 +266,9 @@ export default function AdminDashboard() {
     doc.text("KARTU PENDAFTARAN SPMB", 105, 20, { align: "center" });
     doc.setFontSize(14);
     doc.setFont("helvetica", "normal");
-    doc.text(settings?.namaSekolah || "Sekolah Dasar", 105, 30, { align: "center" });
+    doc.text(String(settings?.namaSekolah || "Sekolah Dasar"), 105, 30, { align: "center" });
+    
+    //doc.text(settings?.namaSekolah || "Sekolah Dasar", 105, 30, { align: "center" });
 
     // Content
     doc.setTextColor(0, 0, 0);
