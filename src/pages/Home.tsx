@@ -104,9 +104,21 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Profil Sekolah / Features */}
+
+      {/* Informasi Waktu Pendaftaran SPMB */}
       <section className="py-24 bg-slate-50 relative -mt-16 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          {/* Judul Bagian Baru (Tambahkan ini untuk konteks) */}
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-extrabold text-slate-950 tracking-tighter">
+              Jadwal Pendaftaran SPMB 2026
+            </h2>
+            <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
+              Catat tanggal penting berikut dan persiapkan diri Anda untuk bergabung dengan SDN 008 Pkl Kerinci.
+            </p>
+          </div>
+
           <motion.div
             variants={containerVariants}
             initial="hidden"
@@ -116,31 +128,73 @@ export default function Home() {
           >
             {[
               {
-                icon: <BookOpen className="text-blue-500" size={32} />,
-                title: "Kurikulum Modern",
-                desc: "Menerapkan kurikulum merdeka belajar yang adaptif dengan perkembangan zaman dan teknologi."
+                // Ikon Kalender untuk Pendaftaran, import assumed
+                icon: <CalendarDays className="text-blue-500" size={32} />, 
+                title: "Pendaftaran Online",
+                prompt: "Periode:", // Label tambahan
+                dateRange: "15 - 18 Juni",
+                year: "2026",
+                color: "text-blue-600", // Warna aksen tanggal
+                desc: "Pengisian formulir dan unggah berkas pendaftaran calon peserta didik."
               },
               {
-                icon: <Users className="text-green-500" size={32} />,
-                title: "Guru Profesional",
-                desc: "Dididik oleh tenaga pengajar tersertifikasi, berpengalaman, dan berdedikasi tinggi pada pendidikan."
+                // Ikon Pencarian/Cek untuk Verifikasi/Validasi, import assumed
+                icon: <SearchCheck className="text-green-500" size={32} />, 
+                title: "Verifikasi & Validasi Data", // Digabung karena tanggal sama
+                prompt: "Periode:",
+                dateRange: "15 - 18 Juni",
+                year: "2026",
+                color: "text-green-600",
+                desc: "Pemeriksaan keabsahan dokumen yang diunggah oleh panitia SPMB."
               },
               {
-                icon: <Trophy className="text-amber-500" size={32} />,
-                title: "Fasilitas Lengkap",
-                desc: "Ruang kelas nyaman, perpustakaan digital, lab komputer, dan fasilitas olahraga yang memadai."
+                // Ikon Pengumuman untuk Pengumuman & Daftar Ulang, import assumed
+                icon: <Megaphone className="text-amber-500" size={32} />, 
+                title: "Pengumuman & Daftar Ulang", // Penggabungan tahap akhir
+                prompt: "Mulai Tanggal:",
+                dateRange: "19 Juni", // Tanggal Pengumuman
+                year: "2026",
+                color: "text-amber-600",
+                // Daftar ulang dari tanggal 19-20
+                desc: "Pengumuman hasil seleksi dan periode daftar ulang siswa yang lulus (19 - 20 Juni)." 
               }
-            ].map((feature, idx) => (
+            ].map((schedule, idx) => (
               <motion.div
                 key={idx}
                 variants={itemVariants}
-                className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 hover:shadow-md transition-shadow"
+                // Menjaga style kartu modern dari potongan kode asli
+                className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col h-full"
               >
-                <div className="w-14 h-14 rounded-xl bg-slate-50 flex items-center justify-center mb-6 border border-slate-100">
-                  {feature.icon}
+                {/* Bagian Atas: Ikon dan Penanda Langkah (Opsional) */}
+                <div className="flex justify-between items-start mb-6">
+                  <div className="w-14 h-14 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100 shadow-inner">
+                    {schedule.icon}
+                  </div>
+                  {/* Label modern tambahan untuk menandai tahapan */}
+                  <span className="text-xs font-bold text-slate-400 bg-slate-100 rounded-full px-3 py-1 border border-slate-200">
+                    Tahap {idx + 1}
+                  </span>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3">{feature.title}</h3>
-                <p className="text-slate-600 leading-relaxed">{feature.desc}</p>
+
+                {/* Bagian Tengah: Hierarki Tanggal Modern (Menonjol) */}
+                <div className="flex-grow space-y-1 mb-5">
+                  <p className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+                    {schedule.prompt}
+                  </p>
+                  <div className={`text-4xl font-black ${schedule.color} tracking-tight`}>
+                    {schedule.dateRange} <span className="text-2xl font-medium pt-1 text-slate-500">{schedule.year}</span>
+                  </div>
+                </div>
+
+                {/* Bagian Bawah: Judul dan Deskripsi */}
+                <div className="border-t border-slate-100 pt-5 mt-auto">
+                  <h3 className="text-lg font-extrabold text-slate-950 mb-2">
+                    {schedule.title}
+                  </h3>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    {schedule.desc}
+                  </p>
+                </div>
               </motion.div>
             ))}
           </motion.div>
