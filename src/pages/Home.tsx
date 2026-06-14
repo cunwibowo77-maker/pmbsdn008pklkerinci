@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Users, Trophy, ChevronRight, CheckCircle2, Calendar, FileText, CheckSquare, AlertCircle } from 'lucide-react';
+import { BookOpen, ChevronRight, Calendar, FileText, CheckSquare, AlertCircle, CalendarDays, SearchCheck, Megaphone } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 
 export default function Home() {
@@ -104,18 +104,16 @@ export default function Home() {
         </div>
       </section>
 
-
       {/* Informasi Waktu Pendaftaran SPMB */}
-      <section className="py-24 bg-slate-50 relative -mt-16 z-20">
+      <section className="py-24 bg-slate-50 relative -mt-16 z-20 border-t border-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
-          {/* Judul Bagian Baru (Tambahkan ini untuk konteks) */}
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-extrabold text-slate-950 tracking-tighter">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
               Jadwal Pendaftaran SPMB 2026
             </h2>
             <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
-              Catat tanggal penting berikut dan persiapkan diri Anda untuk bergabung dengan SDN 008 Pkl Kerinci.
+              Catat tanggal penting berikut dan persiapkan diri Anda untuk bergabung dengan {settings?.namaSekolah || 'SDN 008 Pkl Kerinci'}.
             </p>
           </div>
 
@@ -128,67 +126,59 @@ export default function Home() {
           >
             {[
               {
-                // Ikon Kalender untuk Pendaftaran, import assumed
                 icon: <CalendarDays className="text-blue-500" size={32} />, 
                 title: "Pendaftaran Online",
-                prompt: "Periode:", // Label tambahan
+                prompt: "Periode Pendaftaran:", 
                 dateRange: "15 - 18 Juni",
                 year: "2026",
-                color: "text-blue-600", // Warna aksen tanggal
-                desc: "Pengisian formulir dan unggah berkas pendaftaran calon peserta didik."
+                color: "text-blue-600", 
+                desc: "Pengisian formulir secara online dan unggah berkas pendaftaran calon peserta didik."
               },
               {
-                // Ikon Pencarian/Cek untuk Verifikasi/Validasi, import assumed
                 icon: <SearchCheck className="text-green-500" size={32} />, 
-                title: "Verifikasi & Validasi Data", // Digabung karena tanggal sama
-                prompt: "Periode:",
+                title: "Verifikasi & Validasi", 
+                prompt: "Periode Verifikasi:",
                 dateRange: "15 - 18 Juni",
                 year: "2026",
                 color: "text-green-600",
-                desc: "Pemeriksaan keabsahan dokumen yang diunggah oleh panitia SPMB."
+                desc: "Pemeriksaan dan validasi keabsahan dokumen pendaftar oleh tim panitia sekolah."
               },
               {
-                // Ikon Pengumuman untuk Pengumuman & Daftar Ulang, import assumed
                 icon: <Megaphone className="text-amber-500" size={32} />, 
-                title: "Pengumuman & Daftar Ulang", // Penggabungan tahap akhir
-                prompt: "Mulai Tanggal:",
-                dateRange: "19 Juni", // Tanggal Pengumuman
+                title: "Pengumuman & Daftar Ulang",
+                prompt: "Pengumuman Hasil:",
+                dateRange: "19 Juni",
                 year: "2026",
                 color: "text-amber-600",
-                // Daftar ulang dari tanggal 19-20
-                desc: "Pengumuman hasil seleksi dan periode daftar ulang siswa yang lulus (19 - 20 Juni)." 
+                desc: "Pengumuman hasil seleksi pada tanggal 19 Juni. Dilanjutkan daftar ulang pada 19 - 20 Juni 2026." 
               }
             ].map((schedule, idx) => (
               <motion.div
                 key={idx}
                 variants={itemVariants}
-                // Menjaga style kartu modern dari potongan kode asli
-                className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col h-full"
+                className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200/60 hover:shadow-md hover:border-blue-100 transition-all duration-300 flex flex-col h-full group"
               >
-                {/* Bagian Atas: Ikon dan Penanda Langkah (Opsional) */}
-                <div className="flex justify-between items-start mb-6">
-                  <div className="w-14 h-14 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100 shadow-inner">
+                <div className="flex justify-between items-start mb-8">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100 shadow-sm group-hover:scale-110 transition-transform duration-300">
                     {schedule.icon}
                   </div>
-                  {/* Label modern tambahan untuk menandai tahapan */}
-                  <span className="text-xs font-bold text-slate-400 bg-slate-100 rounded-full px-3 py-1 border border-slate-200">
+                  <span className="text-xs font-bold text-slate-500 bg-slate-100 rounded-full px-3 py-1 border border-slate-200">
                     Tahap {idx + 1}
                   </span>
                 </div>
 
-                {/* Bagian Tengah: Hierarki Tanggal Modern (Menonjol) */}
-                <div className="flex-grow space-y-1 mb-5">
-                  <p className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+                <div className="flex-grow space-y-2 mb-6">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
                     {schedule.prompt}
                   </p>
-                  <div className={`text-4xl font-black ${schedule.color} tracking-tight`}>
-                    {schedule.dateRange} <span className="text-2xl font-medium pt-1 text-slate-500">{schedule.year}</span>
+                  <div className={`text-3xl lg:text-4xl font-black ${schedule.color} tracking-tight`}>
+                    {schedule.dateRange}
                   </div>
+                  <div className="text-xl font-semibold text-slate-400 pt-1">{schedule.year}</div>
                 </div>
 
-                {/* Bagian Bawah: Judul dan Deskripsi */}
-                <div className="border-t border-slate-100 pt-5 mt-auto">
-                  <h3 className="text-lg font-extrabold text-slate-950 mb-2">
+                <div className="border-t border-slate-100 pt-6 mt-auto">
+                  <h3 className="text-lg font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors">
                     {schedule.title}
                   </h3>
                   <p className="text-sm text-slate-600 leading-relaxed">
@@ -201,8 +191,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Sambutan & Visi Misi */}
-
       {/* Alur PPDB */}
       <section id="alur" className="py-24 bg-slate-900 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=2064&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay"></div>
@@ -211,7 +199,7 @@ export default function Home() {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Alur Pendaftaran SPMB</h2>
             <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-              Ikuti langkah-langkah mudah berikut untuk mendaftarkan putra/putri Anda di SDN Harapan Bangsa.
+              Ikuti langkah-langkah mudah berikut untuk mendaftarkan putra/putri Anda.
             </p>
           </div>
 
