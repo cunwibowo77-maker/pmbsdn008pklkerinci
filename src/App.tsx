@@ -19,12 +19,17 @@ function RouteHandler() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Redirect to home on initial load/reload if not on home or admin pages
-    if (location.pathname !== '/' && !location.pathname.startsWith('/admin')) {
-      navigate('/', { replace: true });
+    // 1. Jika pengguna membuka halaman utama '/', langsung alihkan ke '/cek-kelulusan'
+    if (location.pathname === '/') {
+      navigate('/cek-kelulusan', { replace: true });
+    }
+    // 2. Mempertahankan logika asli Anda: Jika reload/akses awal bukan di halaman cek-kelulusan atau admin,
+    //    maka arahkan ke halaman utama yang baru (/cek-kelulusan)
+    else if (location.pathname !== '/cek-kelulusan' && !location.pathname.startsWith('/admin')) {
+      navigate('/cek-kelulusan', { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array ensures this only runs once on app mount (reload)
+  }, []); // Hanya berjalan 1 kali saat aplikasi pertama kali dimuat
 
   return null;
 }
@@ -50,4 +55,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
-
